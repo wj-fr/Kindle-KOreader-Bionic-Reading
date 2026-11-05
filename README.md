@@ -1,232 +1,232 @@
-**English** | [简体中文](README.zh-CN.md)
+**简体中文** | [English](README.en.md)
 
-# A self-use ADHD bionic reading plugin, made purely with AI
+# 纯AI的自用ADHD仿生阅读插件
 
-# Kindle-KOreader-Bionic-Reading (Bionic Reading Plugin)
+# Kindle-KOreader-Bionic-Reading（仿生阅读插件）
 
-A bionic reading plugin for EPUB books in [KOReader](https://koreader.rocks/). It bolds the first part of each word to guide your eyes across the text and make reading feel lighter. It supports English and Chinese, is designed for e-ink devices such as jailbroken Kindles, and works with [月读 (Moon)](https://github.com/AnkioTomas/moon).
+为 [KOReader](https://koreader.rocks/) 打造的 EPUB 仿生阅读插件：把每个词的前半部分加粗，引导视线快速掠过，让阅读更轻松。支持英文和中文，针对越狱 Kindle 等墨水屏设备设计，并兼容[月读](https://github.com/AnkioTomas/moon)。
 
-<!-- Suggestion: add 2-3 screenshots here: the settings menu, and a before/after comparison -->
+<!-- 建议在这里放 2～3 张截图：设置菜单、开启前后的效果对比 -->
 
-## Features
+## 功能特点
 
-- **One-tap switch**: turn bionic reading on or off per EPUB book, or make it the default for all EPUB books. You can also bind "Bionic reading: toggle" to a gesture in KOReader's gesture manager.
-- **Your books are never modified**: the original file stays untouched. The plugin stores the converted content as a cached copy, and KOReader still believes you are reading the original book, so the title, reading progress and reading history stay the same.
-- **Separate settings for English and Chinese**: English is emphasised word by word; Chinese has no spaces, so text is split into groups of a fixed number of characters. The two sets of settings are independent.
-- **Plenty of appearance options**: emphasis strength, word skipping, stem length, edge brightness, 6 emphasis styles and 6 colours (for colour screens).
-- **Presets**: save several sets of settings for English and for Chinese and apply them with one tap.
-- **Notes stay in place**: highlights and notes made under bionic reading are stored separately for each rendering, so they do not shift when you switch settings.
-- **Backup and restore**: back up the highlights and notes of all your books at any time, with a custom backup name. Restoring only adds back what is missing.
-- **Export bionic EPUB**: export the converted book as a standalone EPUB to read on other devices.
-- **月读 (Moon) compatible**: if Moon is installed, a "Bionic reading" button is added to Moon's reading panel, and chapters from Moon's online sources are supported. The plugin works fine without Moon.
-- **Chinese and English interface**: switch the menu language at any time. By default it follows KOReader's interface language.
+- **一键开关**：对 EPUB 按书开启或关闭，也可以设为所有 EPUB 默认开启，还能在手势管理器里绑定"仿生阅读：开关"。
+- **不改原书**：原文件不会被修改。插件把转换后的内容存成缓存副本，KOReader 仍然认为你在读原书，书名、阅读进度、阅读历史都保持不变。
+- **英文和中文分别设置**：英文按词加粗；中文没有空格，按固定字数分组加粗。两套设置互相独立。
+- **丰富的外观选项**：加粗强度、跳词间隔、词干长度、词尾亮度、6 种强调样式、6 种颜色（彩色屏幕）。
+- **预设**：英文、中文各自可以保存多套设置，一点即用。
+- **笔记不乱**：仿生阅读下做的高亮和笔记，会按不同的渲染方式分别保存，切换后不会错位。
+- **备份与还原**：随时备份所有书的高亮和笔记，可自定义备份名称，还原时只补回缺失的内容。
+- **导出仿生 EPUB**：把转换后的书导出成独立的 EPUB，拿到其他设备上也能用。
+- **月读兼容**：装有月读时，会在月读的阅读面板里增加"仿生阅读"按钮，并支持月读在线书源的章节。没装月读也完全可用。
+- **中英文界面**：菜单语言可随时切换，默认跟随 KOReader 的界面语言。
 
-## Compatibility
+## 兼容性
 
-| Item | Notes |
+| 项目 | 说明 |
 |---|---|
-| Verified device | Kindle 2024 (firmware 5.18, jailbroken, KOReader installed) |
-| Other devices | The plugin contains no device-specific code, so it should work on any device that runs KOReader, but it is **untested** |
-| Supported format | EPUB only. PDF, MOBI, AZW3 and other formats are not supported; convert them to EPUB first with a tool such as Calibre |
-| Dependencies | No other plugins required. Moon is optional |
+| 已验证设备 | Kindle 2024（固件 5.18，已越狱并安装 KOReader） |
+| 其他设备 | 插件里没有针对设备型号的代码，理论上能运行 KOReader 的设备都可以使用，但**未经测试** |
+| 支持格式 | 仅 EPUB。PDF、MOBI、AZW3 等格式不支持，可先用 Calibre 等工具转成 EPUB |
+| 依赖 | 无需其他插件。月读为可选 |
 
-This is an independent third-party project and is not affiliated with the KOReader or Moon projects.
+本插件是独立的第三方项目，与 KOReader、月读项目没有隶属关系。
 
-<!-- Suggestion: add the KOReader version you tested with -->
+<!-- 建议在这里补充你测试时使用的 KOReader 版本号 -->
 
-## Installation
+## 安装
 
-1. On this repository's **Releases** page, download the latest `bionic.koplugin-vX.Y.Z.zip`. Download the file uploaded in the Release, **not** the automatically generated "Source code" archives.
-2. Unzip it to get the `bionic.koplugin` folder. **Do not rename the folder.**
-3. Connect the Kindle with a USB cable and copy the whole `bionic.koplugin` folder into KOReader's `plugins` directory. On a Kindle this is usually `/mnt/us/koreader/plugins/`.
-4. Eject the device and restart KOReader (or exit KOReader and open it again).
-5. Open any EPUB and find "Bionic reading" in the top menu.
+1. 在本仓库的 **Releases** 页面下载最新的 `bionic.koplugin-vX.Y.Z.zip`。请下载 Release 里上传的这个文件，**不要**下载页面上自动生成的 "Source code"。
+2. 解压，得到 `bionic.koplugin` 文件夹。**文件夹名字不要修改**。
+3. 用 USB 线连接 Kindle，把 `bionic.koplugin` 整个文件夹复制到 KOReader 的 `plugins` 目录。Kindle 上通常是 `/mnt/us/koreader/plugins/`。
+4. 弹出设备，在 KOReader 中重启（或退出 KOReader 后重新进入）。
+5. 打开任意 EPUB，在顶部菜单里找到"仿生阅读"。
 
-## Quick start
+## 快速上手
 
-**Where to find the menu** (may differ slightly between KOReader versions):
+**菜单位置**（可能因 KOReader 版本略有差异）：
 
-- While reading: top menu → Typesetting tab → Bionic reading
-- In the file browser: top menu → More tools → Bionic reading
+- 阅读时：顶部菜单 → 排版标签页 → 仿生阅读
+- 文件管理器：顶部菜单 → 更多工具 → 仿生阅读
 
-**Getting started:**
+**开始使用：**
 
-1. Open an EPUB and tick "Bionic reading for this book". The first time, the whole book has to be converted, which can take a while for large books on older devices; afterwards the cache is used directly.
-2. To turn it on for every EPUB by default, tick "Always on for EPUB books".
-3. Adjust the effect under "English / Latin text" and "Chinese (Han characters)". Changes are applied to the book you are reading immediately.
-4. For a quick on/off, bind "Bionic reading: toggle" to a gesture in KOReader's gesture manager.
+1. 打开一本 EPUB，勾选"本书启用仿生阅读"。第一次开启时需要转换整本书，大书在老设备上可能要等一会儿，之后会直接使用缓存。
+2. 想让所有 EPUB 默认开启，勾选"所有 EPUB 书籍默认开启"。
+3. 在"英文（拉丁字母）"和"中文（汉字）"里调整效果。改动会立刻应用到正在阅读的书。
+4. 想快速开关，可以在 KOReader 的手势管理器里为某个手势绑定"仿生阅读：开关"。
 
-## Settings
+## 设置说明
 
-### English / Latin text
+### 英文（拉丁字母）
 
-English, Greek, Cyrillic and other scripts that separate words with spaces are all handled by these settings.
+英文、希腊文、西里尔文等使用空格分词的文字都按这里的设置处理。
 
-| Setting | Range | Default | Description |
+| 设置项 | 范围 | 默认 | 说明 |
 |---|---|---|---|
-| Bionic effect on English text | On / Off | On | When off, nothing is applied |
-| Fixation strength | 1 – 4 | 2 | How much of each word is emphasised. 1 is the least, 4 is the whole word stem |
-| Saccades interval | 0 – 4 | 0 | How many words to skip between two emphasised words. 0 means every word is emphasised |
-| Word stem length | 30 – 100% | 70% | The share of a longer word that can be emphasised |
-| Edge opacity | 20 – 100% | 100% | Brightness of the un-emphasised part of a word. 100 means no dimming. **Keep it at 100 on e-ink screens** |
-| Emphasis style | 6 styles | Bold | Bold, semi-bold, extra-bold, underline, bold + underline, italic. Whether semi-bold and extra-bold work depends on whether the font has those weights |
-| Emphasis colour | On / Off | Off | Only works on colour screens |
-| Colour | 6 colours | Red | Red, blue, green, orange, purple, brown. The colours are darkened to suit colour e-ink screens |
+| 对英文文字启用仿生效果 | 开 / 关 | 开 | 关闭后不生效 |
+| 加粗强度 | 1 – 4 | 2 | 每个词加粗多少。1 最少，4 为整个词干 |
+| 跳词间隔 | 0 – 4 | 0 | 两个被加粗的词之间跳过几个词。0 表示每个词都加粗 |
+| 词干长度 | 30 – 100% | 70% | 较长单词中可被加粗部分的占比 |
+| 词尾亮度 | 20 – 100% | 100% | 未加粗部分的亮度。100 表示不变暗，**墨水屏建议保持 100** |
+| 强调样式 | 6 种 | 加粗 | 加粗、半粗、特粗、下划线、加粗 + 下划线、斜体。半粗和特粗取决于字体是否有对应字重 |
+| 强调颜色 | 开 / 关 | 关 | 仅彩色屏幕有效 |
+| 颜色 | 6 种 | 红色 | 红、蓝、绿、橙、紫、棕。颜色已调暗，适合彩色墨水屏 |
 
-### Chinese (Han characters)
+### 中文（汉字）
 
-Chinese has no spaces, so words cannot be recognised. The plugin therefore splits the text into **groups of N characters** and emphasises the first part of each group. This is a fixed-length approximation, not real word segmentation.
+中文没有空格，无法识别词语，所以插件把文字**每 N 个字分成一组**，再对每组的前半部分加粗。这是一种固定字数的近似做法，不是真正的分词。
 
-| Setting | Range | Default | Description |
+| 设置项 | 范围 | 默认 | 说明 |
 |---|---|---|---|
-| Bionic effect on Chinese text (chunk size) | 0 – 6 | 0 (off) | N characters per group. 0 means Chinese is not processed. This also applies to Japanese kana and Korean |
-| Emphasised share | 20 – 80% | 50% | The share of each group that is emphasised. 50% means the first half |
-| Saccades interval | 0 – 4 | 0 | How many groups to skip between two emphasised groups |
-| Edge opacity | 20 – 100% | 100% | Brightness of the un-emphasised part of each group |
-| Emphasis style, emphasis colour, colour | Same as English | Same as English | Set separately from English |
+| 对中文文字使用仿生效果（分组大小） | 0 – 6 | 0（关闭） | 每 N 个字为一组。0 表示不处理中文。该功能同样会作用于日文假名和韩文 |
+| 强调比例 | 20 – 80% | 50% | 每组中被强调的比例。50% 表示前一半 |
+| 跳词间隔 | 0 – 4 | 0 | 两个被强调的分组之间跳过几组 |
+| 词尾亮度 | 20 – 100% | 100% | 每组中未强调部分的亮度 |
+| 强调样式、强调颜色、颜色 | 同英文 | 同英文 | 与英文分开设置 |
 
-### General options
+### 通用选项
 
-- **Page theme for dimming**: light page (dark text) or dark page (light text). It only matters when edge opacity is below 100%.
-- **Separate settings for this book**: when ticked, this book uses its own set of settings and does not affect other books. Untick it to go back to the global settings.
-- **Clear conversion cache**: deletes the cached converted copies to free up space. They are converted again the next time a book is opened.
-- **Language / 语言**: at the very bottom of the menu; switches between the Chinese and English interface.
+- **变暗参照的页面主题**：浅色页面（深色文字）或深色页面（浅色文字）。只在词尾亮度低于 100% 时有影响。
+- **本书使用独立设置**：勾选后，这本书使用自己的一套设置，不影响其他书。取消勾选则回到全局设置。
+- **清除转换缓存**：删除转换产生的缓存副本，释放空间。下次打开时会重新转换。
+- **Language / 语言**：在菜单最底部，切换中文和英文界面。
 
-## Presets
+## 预设
 
-At the bottom of both the "English / Latin text" and "Chinese (Han characters)" pages there is a "Presets" entry.
+在"英文（拉丁字母）"和"中文（汉字）"设置页的最底部，各有一个"预设"入口。
 
-- **Save current settings as preset…**: give the current settings a name and save them. If you leave the name empty, it is named "Preset 1", "Preset 2" and so on automatically. Using an existing name updates that preset.
-- **Default settings**: a built-in entry that restores the plugin's defaults.
-- **Tap a preset name**: applies that preset. When the current settings exactly match a preset, it shows a tick.
-- **Delete preset**: choose a preset to delete.
+- **将当前设置保存为预设…**：给当前设置起个名字保存。名字留空则自动命名为"预设 1"、"预设 2"。名字相同会更新原有预设。
+- **默认设置**：内置的一项，恢复插件的默认值。
+- **点击预设名称**：套用该预设。当前设置与某个预设完全一致时，它前面会打勾。
+- **删除预设**：选择要删除的预设。
 
-English and Chinese presets are independent. **Presets do not change the on/off switch of the bionic effect**: whether the English effect and the Chinese effect are on is up to you; switch them manually, then pick a preset. The Chinese "chunk size" is also the on/off switch of the Chinese effect, so applying a preset only changes it when the Chinese effect is already on.
+英文和中文的预设互相独立。**预设不会改变仿生效果的开关**：是否启用英文效果、是否启用中文效果，由你手动开关，再选择预设。中文的"分组大小"同时也是中文效果的开关，所以只有在中文效果已经开启时，套用预设才会修改它。
 
-## Highlights, notes, backup and restore
+## 高亮、笔记、备份与还原
 
-### How notes are stored
+### 笔记是怎么保存的
 
-In an EPUB, the position of a highlight is recorded in the document structure, and the bionic effect changes that structure. To keep highlights from shifting when you switch, the plugin gives **each text structure its own separate set of highlights and notes**:
+EPUB 里高亮的位置是记在文字结构里的，而仿生效果会改变文字结构。为了避免切换后高亮错位，插件会让**每一种文字结构拥有自己独立的一套高亮和笔记**：
 
-- Turning the bionic effect on or off, and changing emphasis strength, saccades interval, word stem length, emphasis style, whether the edge is dimmed, or the Chinese grouping parameters, switches to a different set.
-- Changing only the colour, the exact edge opacity value, or the page theme does not switch sets.
-- Your other sets of notes are not lost; they are just hidden for now and reappear when you switch back to the matching settings.
+- 开关仿生效果、改变加粗强度、跳词间隔、词干长度、强调样式、词尾是否变暗、中文分组参数，都会切换到另一套。
+- 只改颜色、词尾亮度的具体数值、页面主题，不会切换。
+- 其他几套笔记不会丢失，只是暂时看不到，切换回对应设置后就会重新出现。
 
-> Highlights made under a bionic rendering cannot be moved into the original text, so notes on the original text and notes under the bionic effect are kept apart.
+> 在仿生渲染下做的高亮，无法直接搬进原文，所以原文和仿生效果下的笔记是分开的。
 
-### Backup
+### 备份
 
-Menu: Bionic reading → Backup highlights and notes
+菜单：仿生阅读 → 备份高亮和笔记
 
-- **Back up now…**: opens a naming dialog. Enter a name, or leave it empty to use the date and time as the name.
-- **Delete backups**: lists all backups; tap one and confirm to delete it. You can also delete all backups at once.
-- Scope: books in your reading history, books the plugin has processed, and the book currently open. Chapters from Moon's online sources and the conversion cache are not included.
-- Each backup is stored in `koreader/bionic_backups/<date-time>/` and contains three files:
-  - `backup.lua`: the complete data, used for restoring
-  - `backup.txt`: highlights and notes as human-readable text
-  - `info.lua`: brief information such as the name and time
+- **立即备份…**：弹出命名框。填写名称，或留空使用日期时间作为名称。
+- **删除备份**：列出所有备份，点击某一项并确认后删除。也可以一次删除全部。
+- 备份范围：阅读历史中的书、插件处理过的书，以及当前打开的书。月读在线书源的章节和转换缓存不在其中。
+- 每个备份保存在 `koreader/bionic_backups/<日期时间>/`，包含三个文件：
+  - `backup.lua`：完整数据，用于还原
+  - `backup.txt`：可直接阅读的高亮和笔记文本
+  - `info.lua`：名称、时间等简要信息
 
-### Restore
+### 还原
 
-Menu: Bionic reading → Restore backup
+菜单：仿生阅读 → 还原备份
 
-- **Only possible from the file browser** (with no book open). An open book writes the highlights in memory back to disk when it is closed, which would overwrite the restored content.
-- Restoring only **adds back highlights and notes that are missing** from a book. It **never deletes or changes** existing content, so restoring repeatedly does not create duplicates.
-- Highlights go back to the set they originally belonged to, so they do not shift.
-- Books that can no longer be found are skipped and mentioned in the result.
+- **只能在文件管理器里还原**（没有打开任何书时）。因为打开的书在关闭时会把内存里的高亮写回磁盘，会盖掉还原的内容。
+- 还原只会**补回书里缺失的**高亮和笔记，**不会删除或修改**已有内容，所以重复还原也不会产生重复。
+- 高亮会回到它原来所属的那一套，不会错位。
+- 已经找不到的书会被跳过，并在结果里提示。
 
-Two small limitations:
+两个小限制：
 
-- If you deliberately deleted a highlight after the backup was made, restoring will add it back.
-- Restored highlights are inserted by document position, but when a paragraph contains headings, images and the like, the order may be slightly off. This only affects the order of "next highlight" navigation; no data is lost.
+- 如果你在备份之后故意删掉了某条高亮，还原会把它补回来。
+- 补回的高亮会按文档位置插入，但同一段落里夹着标题、图片等内容时，顺序可能有细微出入，只影响"下一条高亮"的跳转顺序，不会丢失数据。
 
-## Export bionic EPUB
+## 导出仿生 EPUB
 
-Menu: Bionic reading → Export → Export bionic EPUB
+菜单：仿生阅读 → 导出 → 导出仿生 EPUB
 
-Exports the converted book as a standalone EPUB file that you can read on other devices.
+把转换后的书导出成独立的 EPUB 文件，可以拿到其他设备上阅读。
 
-- You can choose whether to add "(Bionic)" after the book title in the exported file, so it does not share a name with the original.
-- By default the file is exported to `documents/bionic_export`; you can change the export folder.
-- Only regular EPUB books are supported, not chapters from Moon's online sources.
+- 可选择是否在导出文件的书名后加上"(Bionic)"，避免和原书重名。
+- 默认导出到 `documents/bionic_export`，也可以修改导出文件夹。
+- 仅支持普通 EPUB，不支持月读在线书源章节。
 
-## Working with 月读 (Moon)
+## 与月读配合
 
-- Without Moon: the plugin works normally, and Moon-related files and menu items have no effect.
-- With Moon: a "Bionic reading" button is added to the reading panel, and you can set "Always on for online-source chapters".
-- Chapters from Moon's online sources are **rewritten in place** (the original is backed up as `.html.bionic`). The plugin restores them automatically when uninstalled; you can also restore them at any time with "Restore original online-source chapters".
-- Moon is still evolving quickly. If the button disappears from the panel after a Moon upgrade, or online chapters stop working, please open an Issue.
+- 没装月读：插件完全正常，与月读相关的文件和菜单项不会产生任何影响。
+- 装了月读：阅读面板里会多一个"仿生阅读"按钮，并可设置"月读在线书源章节默认开启"。
+- 月读在线书源的章节会被**原地改写**（原文备份为 `.html.bionic`）。卸载时插件会自动还原；也可以随时用"还原月读在线书源章节为原文"手动还原。
+- 月读仍在快速迭代。月读升级后，如果面板里的按钮消失，或在线章节不再生效，请提交 Issue。
 
-## Where data is stored
+## 数据存放位置
 
-All paths below are under KOReader's data directory (usually `/mnt/us/koreader/` on a Kindle):
+以下路径都在 KOReader 的数据目录下（Kindle 上通常是 `/mnt/us/koreader/`）：
 
-| Path | Contents |
+| 路径 | 内容 |
 |---|---|
-| `settings/bionic_reading.lua` | The plugin's settings and presets |
-| `bionic_cache/` | Converted cached copies; can be cleared at any time |
-| `bionic_backups/` | Manual backups |
-| `bionic_save/` | Created only on uninstall; holds the kept notes text and backup |
-| `../documents/bionic_export/` | Default export location |
+| `settings/bionic_reading.lua` | 插件的设置和预设 |
+| `bionic_cache/` | 转换后的缓存副本，可随时清除 |
+| `bionic_backups/` | 手动备份 |
+| `bionic_save/` | 卸载时才会创建，存放保留下来的笔记文本和备份 |
+| `../documents/bionic_export/` | 默认的导出位置 |
 
-## Updating
+## 更新
 
-Menu → Bionic reading → **Check for updates** (requires a network connection). Restart KOReader after updating; the previous version is kept as `plugins/bionic.koplugin.old` so you can roll back by hand.
+菜单 → 仿生阅读 → **检查更新**（需联网）。更新后重启 KOReader；旧版本保留为 `plugins/bionic.koplugin.old`，可手动回滚。
 
-## Uninstalling
+## 卸载
 
-In the **file browser** (not inside a book): Bionic reading → Uninstall Bionic Reading…. Three options appear:
+在**文件管理器**里（不要在书里）：仿生阅读 → 卸载仿生阅读…。会弹出三个选项：
 
-- **Cancel**: does nothing.
-- **Uninstall**: books return to their original text, and notes made under the bionic effect are saved as a text file in `koreader/bionic_save`. The plugin, cache, settings and all manual backups are deleted.
-- **Uninstall and keep backup**: as above, and additionally keeps the latest backup, also in `koreader/bionic_save`. If you want to use the plugin again later, copy the backup folder from there back into `koreader/bionic_backups/`.
+- **取消**：什么都不做。
+- **卸载**：书籍还原为原文，仿生效果下做的笔记保存为一个文本文件，放在 `koreader/bionic_save`。插件、缓存、设置和所有手动备份会被删除。
+- **卸载并保留备份**：在上面的基础上，额外保留最新的一份备份，同样放在 `koreader/bionic_save`。如果以后要重新使用，把其中的备份文件夹复制回 `koreader/bionic_backups/` 即可。
 
-The `bionic_save` folder is created only on uninstall, and only when there is actually something to save.
+`bionic_save` 文件夹只在卸载时创建，并且只在确实有内容要保存时才会出现。
 
-## FAQ
+## 常见问题
 
-**I can't see any bold effect?**
-Some fonts have no bold weight. Switch to a font that has a bold weight, or change the emphasis style to "underline". Whether "semi-bold" and "extra-bold" work depends on whether the font has those weights.
+**看不到加粗效果？**
+有些字体没有粗体字重。可以换一个带粗体的字体，或者把强调样式改成"下划线"。"半粗"和"特粗"是否有效，取决于字体是否有对应字重。
 
-**"Bionic reading for this book" is greyed out in the menu?**
-The book currently open is not an EPUB. This plugin only supports EPUB.
+**菜单里"本书启用仿生阅读"是灰色的？**
+当前打开的不是 EPUB。本插件只支持 EPUB。
 
-**The first time is slow?**
-The first time, the whole book has to be converted; afterwards the cache is used directly. Large books are slower on older devices.
+**第一次开启很慢？**
+第一次需要转换整本书，之后会直接使用缓存。大书在较老的设备上会更慢。
 
-**My reading position shifted a little after changing settings?**
-Settings that change the text structure trigger a new conversion, and the plugin returns to your position by percentage, so there may be a slight offset.
+**改了设置后阅读位置有点偏？**
+改变文字结构的设置会触发重新转换，插件会按百分比回到原来的位置，可能有轻微偏差。
 
-**My highlights have disappeared?**
-Highlights are stored in separate sets by text structure (see above). Change the settings back to what they were when you made the highlights and they will reappear. You can also bring them back from "Restore backup".
+**我的高亮不见了？**
+高亮按文字结构分套保存（见上文）。把设置改回做高亮时的状态，它们就会重新出现。也可以到"还原备份"里补回。
 
-**The cache takes up too much space?**
-"Clear conversion cache" in the menu shows the size it uses; tap it to clear.
+**缓存占用空间太多？**
+菜单里"清除转换缓存"会显示占用大小，点击即可清除。
 
-**The Chinese effect looks strange?**
-Chinese is grouped by a fixed number of characters rather than by real word segmentation, so the emphasised part does not necessarily fall on word boundaries. Try different chunk sizes and emphasised shares.
+**中文效果看起来很奇怪？**
+中文是按固定字数分组，不是真正的分词，所以加粗的位置不一定落在词语边界上。可以试试不同的分组大小和强调比例。
 
-## Known limitations
+## 已知限制
 
-- EPUB only.
-- Chinese uses fixed-length grouping, not word segmentation.
-- Verified only on Kindle 2024 (firmware 5.18).
-- The plugin uses some of KOReader's internal interfaces, so it may need adapting after a major KOReader update. After upgrading KOReader, back up your highlights and notes first, then try it on a book you do not care about.
-- Moon's interfaces are evolving quickly, so Moon-related features may need adapting after a Moon upgrade.
+- 仅支持 EPUB。
+- 中文是固定字数分组，不是分词。
+- 只在 Kindle 2024（固件 5.18）上验证过。
+- 插件用到了 KOReader 的一些内部接口，KOReader 大版本更新后可能需要适配。升级 KOReader 后建议先备份高亮和笔记，再用一本不重要的书试一下。
+- 月读的接口在快速迭代，月读升级后相关功能可能需要适配。
 
-## Feedback
+## 反馈问题
 
-Please report problems in Issues. To help locate them, include as much of the following as you can:
+欢迎在 Issues 里反馈。为了方便定位，请尽量提供：
 
-- Device model and firmware version
-- KOReader version
-- Plugin version (the version number in the downloaded zip file name)
-- Steps to reproduce
-- If there is a crash, the `crash.log` from KOReader's data directory
+- 设备型号和固件版本
+- KOReader 版本
+- 插件版本（下载的 zip 文件名里的版本号）
+- 复现步骤
+- 如有崩溃，附上 KOReader 数据目录里的 `crash.log`
 
-## Credits & License
+## 致谢与许可 / Credits & License
 
-- [JiffyReader](https://github.com/jiffyreader/jiffyreader-plugin) (GPL-3.0)
-- [KOReader](https://github.com/koreader/koreader), [月读 Moon](https://github.com/AnkioTomas/moon)
-- This project is released under GPL-3.0; see `LICENSE`.
+- [JiffyReader](https://github.com/jiffyreader/jiffyreader-plugin)（GPL-3.0）
+- [KOReader](https://github.com/koreader/koreader)、[月读 Moon](https://github.com/AnkioTomas/moon)
+- 本项目以 GPL-3.0 发布，见 `LICENSE`。
