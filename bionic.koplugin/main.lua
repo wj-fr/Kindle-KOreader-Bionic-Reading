@@ -263,6 +263,10 @@ end
 
 function Bionic:convertFile(orig, dest, prefix)
     local t_start, t_transform, html_bytes = now(), 0, 0
+    -- diagnostics: wall-clock time per phase, and how much non-text data (images, fonts) is copied
+    local w_read, w_xform, w_write, w_gc = 0, 0, 0, 0
+    local n_entries, bin_files, bin_bytes, max_entry = 0, 0, 0, 0
+    local pending_bytes = 0 -- bytes held outside the Lua GC's view since the last full collection
 
     local Archiver = require("ffi/archiver")
     local reader = Archiver.Reader:new()
@@ -287,17 +291,24 @@ function Bionic:convertFile(orig, dest, prefix)
                 ok, err = false, _("This book appears to be DRM-protected; it cannot be converted.")
                 break
             end
+            local w0 = now()
             local data = reader:extractToMemory(path)
+            w_read = w_read + (now() - w0)
+            if data then
+                n_entries = n_entries + 1
+                if #data > max_entry then max_entry = #data end
+            end
             if not data then
                 ok, err = false, _("Failed to read a file inside the EPUB.")
                 break
             end
             local ext = (path:match("%.([^./]+)$") or ""):lower()
             if TEXT_EXT[ext] and Bionify.is_utf8_html(data) then
-                local c0 = os.clock()
+                local c0, wx0 = os.clock(), now()
                 html_bytes = html_bytes + #data
                 local okt, res = pcall(Bionify.transform_html, data, opts)
                 t_transform = t_transform + (os.clock() - c0)
+                w_xform = w_xform + (now() - wx0)
                 if okt then
                     data = res
                     changed_files = changed_files + 1
@@ -308,9 +319,27 @@ function Bionic:convertFile(orig, dest, prefix)
             -- this is only a cache: skipping compression makes the conversion (and the loading
             -- of the converted book) faster, at the price of a bigger cache file
             writer:setZipCompression("store")
-            if not writer:addFileFromMemory(path, data, mtime) then
+            local ww0 = now()
+            local added = writer:addFileFromMemory(path, data, mtime)
+            w_write = w_write + (now() - ww0)
+            if not added then
                 ok, err = false, _("Failed to write the converted file.")
                 break
+            end
+            -- extractToMemory() malloc()s a buffer that the Lua GC cannot see (it only sees a small
+            -- cdata pointer), so with a book full of images the garbage piles up unnoticed until the
+            -- e-reader runs out of RAM and starts swapping / thrashing. Collect explicitly.
+            if not (TEXT_EXT[ext]) then
+                bin_files = bin_files + 1
+                bin_bytes = bin_bytes + #data
+            end
+            pending_bytes = pending_bytes + #data
+            data = nil
+            if pending_bytes >= 2 * 1024 * 1024 then
+                local g0 = now()
+                collectgarbage("collect")
+                w_gc = w_gc + (now() - g0)
+                pending_bytes = 0
             end
         end
     end
@@ -328,6 +357,9 @@ function Bionic:convertFile(orig, dest, prefix)
     if not os.rename(tmp, dest) then return nil, _("Cannot save the converted file.") end
     logger.info(string.format("bionic: converted %s: %d text files (%d KB), %.1f s in total, %.1f s of it text processing",
         tostring(orig:match("([^/]+)$")), changed_files, math.floor(html_bytes / 1024), now() - t_start, t_transform))
+    logger.info(string.format("bionic: wall-clock split: read %.1f s, transform %.1f s, write %.1f s, gc %.1f s; "
+        .. "%d entries, %d non-text files (%d KB), biggest entry %d KB",
+        w_read, w_xform, w_write, w_gc, n_entries, bin_files, math.floor(bin_bytes / 1024), math.floor(max_entry / 1024)))
     return dest, nil, prefix
 end
 
