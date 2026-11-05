@@ -173,6 +173,7 @@ local ZH = {
     ["Cannot replace the plugin folder."] = "无法替换插件文件夹。",
     ["Cannot find the plugin folder."] = "找不到插件文件夹。",
     ["The update source is not configured yet (set REPO in bionic_update.lua)."] = "尚未配置更新源（请在 bionic_update.lua 中设置 REPO）。",
+    ["Preparing bionic reading… this is slow only the first time this book is opened."] = "正在准备仿生阅读…只有这本书第一次打开时会比较慢。",
 }
 
 function I18n.setLang(lang)

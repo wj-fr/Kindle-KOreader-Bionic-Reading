@@ -434,7 +434,10 @@ local function build(opts)
 
     local state = { i = 0, ci = 0 } -- word counters of the text node being processed
 
+    local find = string.find
     local function on_token(tok)
+        -- the common case, a plain ASCII word (no digit, apostrophe or accented letter): one test
+        if not find(tok, "[^A-Za-z]") then return emit_ascii(tok, state) end
         if not tok:find(ph_pattern) then return handle_run(tok, state) end
         local a, j, b = tok:match("^([A-Za-z]+)(['\1-\6])([A-Za-z]+)$")
         if a then return emit_pair(a, j, b, state) end
@@ -448,6 +451,7 @@ local function build(opts)
         if not text:find("[A-Za-z\128-\255]") then return text end
         if not latin_on and chunk == 0 then return text end -- nothing to do for either script
         state.i, state.ci = 0, 0
+        if not find(text, "&", 1, true) then return (text:gsub(TOKEN, on_token)) end -- no entities
         local swapped = false
         if text:find("&", 1, true) then
             local t, count = text:gsub("&#?[%w]+;", entity_to_ph)

@@ -233,10 +233,36 @@ local TEXT_EXT = { xhtml = true, html = true, htm = true }
 local STORE_EXT = { jpg = true, jpeg = true, png = true, gif = true, webp = true, mp3 = true, mp4 = true,
                     woff = true, woff2 = true, ttf = true, otf = true }
 
+-- wall-clock seconds with sub-second resolution when the socket library is there
+local function now()
+    local ok, socket = pcall(require, "socket")
+    if ok and socket and socket.gettime then return socket.gettime() end
+    return os.time()
+end
+
 -- returns the converted file path, or nil + error message
+-- The first open of a book (and the first open after a setting that changes the text) has to
+-- convert the whole book, which takes a while on an e-reader. Say so, so it does not look frozen.
 function Bionic:convert(orig)
     local dest, prefix = self:cachePathFor(orig)
     if lfs.attributes(dest, "mode") == "file" then return dest, nil, prefix end
+
+    local notice = InfoMessage:new{
+        text = _("Preparing bionic reading… this is slow only the first time this book is opened."),
+    }
+    UIManager:show(notice)
+    UIManager:forceRePaint()
+    local ok, d, e, p = pcall(self.convertFile, self, orig, dest, prefix)
+    UIManager:close(notice)
+    if not ok then
+        logger.warn("bionic: conversion crashed for", orig, d)
+        return nil, _("Conversion failed.")
+    end
+    return d, e, p
+end
+
+function Bionic:convertFile(orig, dest, prefix)
+    local t_start, t_transform, html_bytes = now(), 0, 0
 
     local Archiver = require("ffi/archiver")
     local reader = Archiver.Reader:new()
@@ -268,7 +294,10 @@ function Bionic:convert(orig)
             end
             local ext = (path:match("%.([^./]+)$") or ""):lower()
             if TEXT_EXT[ext] and Bionify.is_utf8_html(data) then
+                local c0 = os.clock()
+                html_bytes = html_bytes + #data
                 local okt, res = pcall(Bionify.transform_html, data, opts)
+                t_transform = t_transform + (os.clock() - c0)
                 if okt then
                     data = res
                     changed_files = changed_files + 1
@@ -276,7 +305,9 @@ function Bionic:convert(orig)
                     logger.warn("bionic: transform failed for", path, res)
                 end
             end
-            writer:setZipCompression((path == "mimetype" or STORE_EXT[ext]) and "store" or "deflate")
+            -- this is only a cache: skipping compression makes the conversion (and the loading
+            -- of the converted book) faster, at the price of a bigger cache file
+            writer:setZipCompression("store")
             if not writer:addFileFromMemory(path, data, mtime) then
                 ok, err = false, _("Failed to write the converted file.")
                 break
@@ -295,6 +326,8 @@ function Bionic:convert(orig)
     end
     os.remove(dest)
     if not os.rename(tmp, dest) then return nil, _("Cannot save the converted file.") end
+    logger.info(string.format("bionic: converted %s: %d text files (%d KB), %.1f s in total, %.1f s of it text processing",
+        tostring(orig:match("([^/]+)$")), changed_files, math.floor(html_bytes / 1024), now() - t_start, t_transform))
     return dest, nil, prefix
 end
 
