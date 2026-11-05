@@ -1,3 +1,7 @@
+[English](README.md) | **简体中文**
+
+# 纯AI的自用ADHD仿生阅读插件
+
 # Kindle-KOreader-Bionic-Reading（仿生阅读插件）
 
 为 [KOReader](https://koreader.rocks/) 打造的 EPUB 仿生阅读插件：把每个词的前半部分加粗，引导视线快速掠过，让阅读更轻松。支持英文和中文，针对越狱 Kindle 等墨水屏设备设计，并兼容[月读](https://github.com/AnkioTomas/moon)。
