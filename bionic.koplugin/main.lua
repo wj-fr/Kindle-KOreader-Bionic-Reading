@@ -261,7 +261,44 @@ function Bionic:convert(orig)
     return d, e, p
 end
 
+-- fixed workload (about 0.01-0.03 s on a PC): tells a slow / throttled CPU from a slow algorithm
+local function cpuProbe()
+    local t0 = now()
+    local acc, str = 0, ("hello world "):rep(50)
+    for i = 1, 300000 do
+        acc = (acc + i * 7) % 1000003
+        if i % 100 == 0 then acc = acc + #str:sub(i % 40 + 1, i % 40 + 8):upper() end
+    end
+    local words = 0
+    for _w in (str:rep(200)):gmatch("%a+") do words = words + 1 end
+    return now() - t0
+end
+
+-- free RAM / swap / load of the device and the memory used by KOReader's Lua: a device that is
+-- short of RAM (swapping) makes allocation-heavy code like this one hundreds of times slower
+local function sysInfo()
+    local parts = {}
+    local f = io.open("/proc/meminfo", "r")
+    if f then
+        for line in f:lines() do
+            local k, v = line:match("^(%w+):%s+(%d+)")
+            if k == "MemTotal" or k == "MemFree" or k == "MemAvailable" or k == "Cached" or k == "SwapTotal" or k == "SwapFree" then
+                parts[#parts + 1] = string.format("%s %d MB", k, math.floor(tonumber(v) / 1024))
+            end
+        end
+        f:close()
+    end
+    local l = io.open("/proc/loadavg", "r")
+    if l then parts[#parts + 1] = "load " .. (l:read("*l") or "?"); l:close() end
+    parts[#parts + 1] = string.format("lua heap %d MB", math.floor(collectgarbage("count") / 1024))
+    return table.concat(parts, ", ")
+end
+
 function Bionic:convertFile(orig, dest, prefix)
+    pcall(function()
+        logger.info(string.format("bionic: cpu probe %.3f s (a PC needs about 0.02 s)", cpuProbe()))
+        logger.info("bionic: system before conversion:", sysInfo())
+    end)
     local t_start, t_transform, html_bytes = now(), 0, 0
     -- diagnostics: wall-clock time per phase, and how much non-text data (images, fonts) is copied
     local w_read, w_xform, w_write, w_gc = 0, 0, 0, 0
@@ -360,6 +397,14 @@ function Bionic:convertFile(orig, dest, prefix)
     logger.info(string.format("bionic: wall-clock split: read %.1f s, transform %.1f s, write %.1f s, gc %.1f s; "
         .. "%d entries, %d non-text files (%d KB), biggest entry %d KB",
         w_read, w_xform, w_write, w_gc, n_entries, bin_files, math.floor(bin_bytes / 1024), math.floor(max_entry / 1024)))
+    pcall(function() logger.info("bionic: system after conversion:", sysInfo()) end)
+    pcall(function()
+        local info = {}
+        if type(jit) == "table" and jit.status then
+            for _i, v in ipairs({ jit.status() }) do info[#info + 1] = tostring(v) end
+        end
+        logger.info("bionic: LuaJIT status:", #info > 0 and table.concat(info, " ") or "n/a (no jit table)")
+    end)
     return dest, nil, prefix
 end
 

@@ -24,7 +24,7 @@ Algorithm:
 local M = {}
 
 M.DEFAULTS = {
-    latin_on = true,       -- false = leave English / Latin-script text alone (e.g. emphasise only Chinese)
+    latin_on = false,      -- false = leave English / Latin-script text alone (e.g. emphasise only Chinese)
     stem_pct = 0.7,        -- share of a longer word that is emphasised
     max_parts = 4,         -- max number of parts a stem is cut into
     fixation_strength = 2, -- 1..4   (default 2)
@@ -142,6 +142,13 @@ local function classify(ch)
     return "N"
 end
 
+-- classify() is pure: remember the answer per character (a book only has a few thousand distinct ones)
+local CLS = setmetatable({}, { __index = function(t, ch)
+    local c = classify(ch)
+    rawset(t, ch, c)
+    return c
+end })
+
 -- is the character starting at s[pos] a letter?
 local function letter_at(s, pos)
     local b = s:byte(pos)
@@ -199,42 +206,64 @@ local function look(style, color_on, color, edge_opacity, edge_theme)
     return open_emph, close_emph, open_edge, close_edge
 end
 
--- returns emit(first, rest, state): "first" is the part that gets emphasised. Every script keeps
--- its own running word counter in state[key].
-local function make_emit(open_emph, close_emph, open_edge, close_edge, interval, key)
+-- WHY PIECES: LuaJIT interns every string, and the (older) LuaJIT shipped with KOReader hashes a
+-- string from only a few sampled bytes (the first and last 4, plus two spots in the middle). The
+-- dimmed markup  <b>ab</b><span style="color:#808080">cd</span>  is long and almost constant, so
+-- hundreds of thousands of different words/chunks produce the SAME hash: every new string then
+-- walks a chain of thousands of entries (hundreds of seconds for a book). So no per-word long
+-- string is ever built: the markup, the emphasised part and the rest are appended to the output
+-- table as separate short pieces and only joined once, at the very end.
+
+-- returns emit(first, rest, state), which APPENDS the pieces of one word. Every script keeps its own
+-- running word counter in state[key].
+local function make_emit(w, open_emph, close_emph, open_edge, close_edge, interval, key)
     return function(first, rest, state)
         local i = state[key] + 1
         state[key] = i
         if (i - 1) % interval ~= 0 then
             -- de-emphasised word (dimmed entirely)
-            if open_edge == "" then return first .. rest end
-            return open_edge .. first .. rest .. close_edge
+            if open_edge == "" then
+                w(first); w(rest)
+            else
+                w(open_edge); w(first); w(rest); w(close_edge)
+            end
+            return
         end
-        if rest == "" or open_edge == "" then
-            return open_emph .. first .. close_emph .. rest
+        w(open_emph); w(first); w(close_emph)
+        if rest ~= "" then
+            if open_edge == "" then
+                w(rest)
+            else
+                w(open_edge); w(rest); w(close_edge)
+            end
         end
-        return open_emph .. first .. close_emph .. open_edge .. rest .. close_edge
     end
 end
 
+-- build(opts) returns transform_text(text, out, n) -> n: it appends the pieces of one text node to
+-- the table "out" (which already holds n pieces) and returns the new count.
 local function build(opts)
     local stem_pct, max_parts = opts.stem_pct, opts.max_parts
     local strength = opts.fixation_strength
+
+    -- the output buffer of the text node being processed
+    local ob, bn = nil, 0
+    local function w(s) bn = bn + 1; ob[bn] = s end
 
     local latin_on = opts.latin_on ~= false
     local oe, ce, od, cd = look(opts.style, opts.color_on, opts.color, opts.edge_opacity, opts.edge_theme)
     local emit_latin
     if latin_on then
-        emit_latin = make_emit(oe, ce, od, cd, opts.saccades + 1, "i")
+        emit_latin = make_emit(w, oe, ce, od, cd, opts.saccades + 1, "i")
     else
-        emit_latin = function(first, rest) return first .. rest end -- English switched off
+        emit_latin = function(first, rest) w(first); w(rest) end -- English switched off
     end
 
     local chunk = opts.cjk_chunk or 0
     local ratio = opts.cjk_ratio or 0.5
     oe, ce, od, cd = look(opts.cjk_style, opts.cjk_color_on, opts.cjk_color, opts.cjk_edge_opacity or 100,
         opts.edge_theme)
-    local emit_cjk_part = make_emit(oe, ce, od, cd, (opts.cjk_saccades or 0) + 1, "ci")
+    local emit_cjk_part = make_emit(w, oe, ce, od, cd, (opts.cjk_saccades or 0) + 1, "ci")
 
     -- number of emphasised letters for a word of n letters (cached)
     local bold_cache = {}
@@ -252,7 +281,7 @@ local function build(opts)
 
     local function emit_ascii(word, state)
         local b = bold_len(#word)
-        return emit_latin(word:sub(1, b), word:sub(b + 1), state)
+        emit_latin(word:sub(1, b), word:sub(b + 1), state)
     end
 
     -- units: the characters of one word (letters, plus apostrophes inside it); kind[i] is true for
@@ -266,52 +295,49 @@ local function build(opts)
                 if seen == b then cut = i; break end
             end
         end
-        return emit_latin(table.concat(units, "", 1, cut), table.concat(units, "", cut + 1, wn), state)
+        emit_latin(table.concat(units, "", 1, cut), table.concat(units, "", cut + 1, wn), state)
     end
 
     local function emit_cjk(units, n, state)
-        local out, i = {}, 1
+        local i = 1
         while i <= n do
             local j = math.min(i + chunk - 1, n)
             local m = j - i + 1
             local b = math.max(1, math.min(m, math.floor(m * ratio + 0.5)))
-            out[#out + 1] = emit_cjk_part(table.concat(units, "", i, i + b - 1),
-                                          table.concat(units, "", i + b, j), state)
+            emit_cjk_part(table.concat(units, "", i, i + b - 1), table.concat(units, "", i + b, j), state)
             i = j + 1
         end
-        return table.concat(out)
     end
 
     -- General path, character by character. parts = { run, joiner, run, joiner, run ... }:
     -- odd entries are runs of [A-Za-z0-9\128-\255], even entries are the ASCII apostrophes /
     -- apostrophe placeholders that the caller found between two letters.
     -- The buffers below are shared by all calls (the function is never re-entered): entries past
-    -- wn / cn / on are stale and are never read.
-    local word, kind, cjk, out = {}, {}, {}, {}
-    local wn, lcount, tainted, cn, on, pend, cur
-    local function put(s) on = on + 1; out[on] = s end
+    -- wn / cn are stale and are never read.
+    local word, kind, cjk = {}, {}, {}
+    local wn, lcount, tainted, cn, pend, cur
     local function flush_word()
         if wn > 0 then
             if tainted then
-                put(table.concat(word, "", 1, wn)) -- contains a digit: leave alone
+                w(table.concat(word, "", 1, wn)) -- contains a digit: leave alone
             else
-                put(emit_units(word, kind, wn, lcount, cur))
+                emit_units(word, kind, wn, lcount, cur)
             end
             wn, lcount, tainted = 0, 0, false
         end
     end
     local function flush_cjk()
         if cn > 0 then
-            if chunk > 0 then put(emit_cjk(cjk, cn, cur)) else put(table.concat(cjk, "", 1, cn)) end
+            if chunk > 0 then emit_cjk(cjk, cn, cur) else w(table.concat(cjk, "", 1, cn)) end
             cn = 0
         end
     end
     local function drop_pending() -- the apostrophe was not between two letters
-        if pend then flush_word(); put(pend); pend = nil end
+        if pend then flush_word(); w(pend); pend = nil end
     end
 
     local function handle_chars(parts, state)
-        wn, lcount, tainted, cn, on, pend, cur = 0, 0, false, 0, 0, nil, state
+        wn, lcount, tainted, cn, pend, cur = 0, 0, false, 0, nil, state
         -- pend: an apostrophe after a letter; it joins the word only if a letter follows
         for pi = 1, #parts do
             local part = parts[pi]
@@ -319,7 +345,7 @@ local function build(opts)
                 wn = wn + 1; word[wn] = part; kind[wn] = false
             else
                 for ch in part:gmatch(CHAR_PATTERN) do
-                    local c = classify(ch)
+                    local c = CLS[ch]
                     if pend then
                         if c == "L" then
                             wn = wn + 1; word[wn] = pend; kind[wn] = false; pend = nil
@@ -331,37 +357,37 @@ local function build(opts)
                         if cn > 0 then flush_cjk() end
                         wn = wn + 1; word[wn] = ch; kind[wn] = true; lcount = lcount + 1
                     elseif c == "A" then
-                        if wn > 0 and kind[wn] then pend = ch else flush_word(); flush_cjk(); put(ch) end
+                        if wn > 0 and kind[wn] then pend = ch else flush_word(); flush_cjk(); w(ch) end
                     elseif c == "D" then
                         if cn > 0 then flush_cjk() end
                         wn = wn + 1; word[wn] = ch; kind[wn] = false; tainted = true
                     elseif c == "M" then
                         if wn > 0 then word[wn] = word[wn] .. ch
                         elseif cn > 0 then cjk[cn] = cjk[cn] .. ch
-                        else put(ch) end
+                        else w(ch) end
                     elseif c == "C" then
                         if wn > 0 then flush_word() end
                         cn = cn + 1; cjk[cn] = ch
                     else
-                        flush_word(); flush_cjk(); put(ch)
+                        flush_word(); flush_cjk(); w(ch)
                     end
                 end
             end
         end
         if pend then drop_pending() end
         flush_word(); flush_cjk()
-        return table.concat(out, "", 1, on)
     end
 
     -- a single run of [A-Za-z0-9\128-\255]
     local function handle_run(run, state)
         if not run:find("[\128-\255]") then
-            if run:find("%d") then return run end -- words with digits are left alone
+            if run:find("%d") then w(run); return end -- words with digits are left alone
             return emit_ascii(run, state)
         end
         -- fast path: nothing we would ever emphasise unless CJK chunking is on
         if chunk == 0 and not run:find("[A-Za-z\194-\223\225]") then
-            return run
+            w(run)
+            return
         end
         return handle_chars({ run }, state)
     end
@@ -376,13 +402,14 @@ local function build(opts)
         return emit_latin(a .. j .. b:sub(1, bl - la), b:sub(bl - la + 1), state)
     end
 
-    -- joined group (runs and apostrophes alternating); ASCII letters take a shortcut
+    -- joined group (runs and apostrophes alternating); ASCII letters take a shortcut.
+    -- returns false when it produced nothing
     local function emit_joined(parts, state)
         local total, np = 0, #parts
         for i = 1, np, 2 do
             local p = parts[i]
-            if p:find("[\128-\255]") then return handle_chars(parts, state) end
-            if p:find("%d") then return table.concat(parts) end -- contains a digit: leave alone
+            if p:find("[\128-\255]") then handle_chars(parts, state); return true end
+            if p:find("%d") then w(table.concat(parts)); return true end -- contains a digit: leave alone
             total = total + #p
         end
         local bl, acc = bold_len(total), 0
@@ -392,10 +419,12 @@ local function build(opts)
                 local cut = bl - acc
                 local first = table.concat(parts, "", 1, i - 1) .. parts[i]:sub(1, cut)
                 local rest = parts[i]:sub(cut + 1) .. table.concat(parts, "", i + 1, np)
-                return emit_latin(first, rest, state)
+                emit_latin(first, rest, state)
+                return true
             end
             acc = acc + l
         end
+        return false
     end
 
     -- A token that contains apostrophes: split it into runs and apostrophes, join the runs that
@@ -410,12 +439,12 @@ local function build(opts)
             n = n + 1; items[n] = tok:sub(j, j)
             pos = j + 1
         end
-        local out, on, k = {}, 0, 1
+        local k = 1
         while k <= n do
             local it = items[k]
             k = k + 1
             if is_joiner(it) then
-                on = on + 1; out[on] = it -- apostrophe that is not between two letters
+                w(it) -- apostrophe that is not between two letters
             else
                 local parts = { it }
                 while k + 1 <= n and is_joiner(items[k]) and not is_joiner(items[k + 1])
@@ -424,21 +453,23 @@ local function build(opts)
                     parts[#parts + 1] = items[k + 1]
                     k = k + 2
                 end
-                on = on + 1
-                if #parts == 1 then out[on] = handle_run(parts[1], state)
-                else out[on] = emit_joined(parts, state) end
+                if #parts == 1 then
+                    handle_run(parts[1], state)
+                else
+                    local before = bn
+                    if not emit_joined(parts, state) and bn == before then w(table.concat(parts)) end
+                end
             end
         end
-        return table.concat(out)
     end
 
     local state = { i = 0, ci = 0 } -- word counters of the text node being processed
 
-    local find = string.find
+    local find, sub = string.find, string.sub
     local function on_token(tok)
         -- the common case, a plain ASCII word (no digit, apostrophe or accented letter): one test
         if not find(tok, "[^A-Za-z]") then return emit_ascii(tok, state) end
-        if not tok:find(ph_pattern) then return handle_run(tok, state) end
+        if not find(tok, ph_pattern) then return handle_run(tok, state) end
         local a, j, b = tok:match("^([A-Za-z]+)(['\1-\6])([A-Za-z]+)$")
         if a then return emit_pair(a, j, b, state) end
         return handle_joined(tok, state)
@@ -446,35 +477,76 @@ local function build(opts)
 
     local TOKEN = "[A-Za-z0-9\128-\255][A-Za-z0-9\128-\255'\1-\6]*"
 
-    -- one text node (text between two tags); entities are passed through untouched
-    local function transform_text(text)
-        if not text:find("[A-Za-z\128-\255]") then return text end
-        if not latin_on and chunk == 0 then return text end -- nothing to do for either script
-        state.i, state.ci = 0, 0
-        if not find(text, "&", 1, true) then return (text:gsub(TOKEN, on_token)) end -- no entities
-        local swapped = false
-        if text:find("&", 1, true) then
-            local t, count = text:gsub("&#?[%w]+;", entity_to_ph)
-            if count > 0 then
-                swapped = text:find("[\1-\6]") == nil -- (a stray control byte in the source: do not touch)
-                if swapped then text = t end
+    -- When no word counter is involved (no saccades) the pieces of a token depend on the token only,
+    -- so they are remembered. Long tokens (whole runs of Chinese text) are not stored.
+    local cjk_pure = ((opts.cjk_saccades or 0) + 1) == 1
+    local pure = (not latin_on or opts.saccades + 1 == 1) and (chunk == 0 or cjk_pure)
+    local memo, memo_n = {}, 0
+    local function token(tok)
+        local before = bn
+        if pure then
+            local m = memo[tok]
+            if m then
+                for i = 1, #m do bn = bn + 1; ob[bn] = m[i] end
+                return
             end
+            on_token(tok)
+            if bn == before then w(tok) return end
+            if memo_n < 60000 and #tok <= 48 then
+                local m2 = {}
+                for i = before + 1, bn do m2[#m2 + 1] = ob[i] end
+                memo[tok] = m2
+                memo_n = memo_n + 1
+            end
+            return
         end
-        local out, pos = {}, 1
+        on_token(tok)
+        if bn == before then w(tok) end -- (nothing produced: keep the token as it was)
+    end
+
+    -- the words of a stretch of text with no entities in it
+    local function scan(text)
+        local pos, len = 1, #text
+        while pos <= len do
+            local s, e = find(text, TOKEN, pos)
+            if not s then w(sub(text, pos)); return end
+            if s > pos then w(sub(text, pos, s - 1)) end
+            token(sub(text, s, e))
+            pos = e + 1
+        end
+    end
+
+    -- one text node (text between two tags); entities are passed through untouched
+    local function transform_text(text, out, n)
+        ob, bn = out, n
+        if not text:find("[A-Za-z\128-\255]") then w(text); return bn end
+        if not latin_on and chunk == 0 then w(text); return bn end -- nothing to do for either script
+        state.i, state.ci = 0, 0
+        if not find(text, "&", 1, true) then scan(text); return bn end -- no entities
+        local first_piece = bn + 1
+        local swapped = false
+        local t, count = text:gsub("&#?[%w]+;", entity_to_ph)
+        if count > 0 then
+            swapped = text:find("[\1-\6]") == nil -- (a stray control byte in the source: do not touch)
+            if swapped then text = t end
+        end
+        local pos = 1
         while true do
             local s, e = text:find("&#?[%w]+;", pos)
             local segment
-            if s then segment = text:sub(pos, s - 1) else segment = text:sub(pos) end
-            if segment ~= "" then
-                out[#out + 1] = (segment:gsub(TOKEN, on_token))
-            end
+            if s then segment = sub(text, pos, s - 1) else segment = sub(text, pos) end
+            if segment ~= "" then scan(segment) end
             if not s then break end
-            out[#out + 1] = text:sub(s, e)
+            w(sub(text, s, e))
             pos = e + 1
         end
-        local result = table.concat(out)
-        if swapped then result = result:gsub("[\1-\6]", PH_TO_ENTITY) end
-        return result
+        if swapped then
+            for i = first_piece, bn do
+                local piece = ob[i]
+                if find(piece, "[\1-\6]") then ob[i] = (piece:gsub("[\1-\6]", PH_TO_ENTITY)) end
+            end
+        end
+        return bn
     end
 
     return transform_text
@@ -488,7 +560,14 @@ function M.transform_html(html, user_opts)
     local opts = {}
     for k, v in pairs(M.DEFAULTS) do opts[k] = v end
     if user_opts then for k, v in pairs(user_opts) do opts[k] = v end end
-    local transform_text = build(opts)
+    -- building (and the memo tables) can be reused by the next file of the same book
+    local keys = {}
+    for k in pairs(opts) do keys[#keys + 1] = k end
+    table.sort(keys)
+    for i = 1, #keys do keys[i] = keys[i] .. "=" .. tostring(opts[keys[i]]) end
+    local sig = table.concat(keys, "|")
+    if M._sig ~= sig then M._sig, M._fn = sig, build(opts) end
+    local transform_text = M._fn
 
     local out, n = {}, 0
     local len = #html
@@ -500,12 +579,12 @@ function M.transform_html(html, user_opts)
     while pos <= len do
         local lt = html:find("<", pos, true)
         if not lt then
-            if skip_total > 0 then push(html:sub(pos)) else push(transform_text(html:sub(pos))) end
+            if skip_total > 0 then push(html:sub(pos)) else n = transform_text(html:sub(pos), out, n) end
             break
         end
         if lt > pos then
             local text = html:sub(pos, lt - 1)
-            if skip_total > 0 then push(text) else push(transform_text(text)) end
+            if skip_total > 0 then push(text) else n = transform_text(text, out, n) end
         end
 
         local tag_end
@@ -550,6 +629,9 @@ function M.transform_html(html, user_opts)
 
     return table.concat(out)
 end
+
+-- forget the reusable transformer (for benchmarks)
+function M.reset_cache() M._sig, M._fn = nil, nil end
 
 -- false when the file declares a non-UTF-8 encoding (we only handle UTF-8)
 function M.is_utf8_html(data)
